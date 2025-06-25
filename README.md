@@ -1,17 +1,12 @@
 # 高效混合CNN-Transformer模型有序压缩研究项目
-
-## 📜 项目概述
-
+##  项目概述
 本项目旨在探索和实现一种结合了卷积神经网络（CNN）和Transformer的高效混合模型，用于图像识别任务。项目的核心研究内容包括：
 
 1. 设计可配置的轻量级CNN骨干网络和混合CNN-Transformer架构，支持串行和并行等多种融合策略。
 2. 系统性地应用“有序模型压缩”技术（如剪枝、量化）来优化模型的效率（大小、速度）和性能（准确率）。
 3. 提供一个灵活的实验管理框架，方便定义、运行和比较不同的模型架构、训练策略及压缩流程。
-
 本项目代码使用 Python 和 PyTorch 构建。
-
-## ✨ 主要特性
-
+##  主要特性
 - **混合模型架构**: 实现了一个 `HybridCNNTransformer` 模型，包含：
     - 可配置的 `LightweightCNN` 骨干，允许自定义卷积块（通道数、池化等）。
     - 标准的 Transformer Encoder 模块。
@@ -41,10 +36,7 @@
     - `train_eval.py`: 训练和评估逻辑。
     - `main.py`: 实验流程主控制脚本。
 
-## 📂 项目结构
-
-
-
+##  项目结构
 ```
 your_project_directory/
 ├── config.py         # 存储配置、超参数、路径
@@ -90,7 +82,7 @@ pip install thop
 ### 3. CUDA 设置 (如果使用GPU)
 确保您的 NVIDIA 显卡驱动和 CUDA Toolkit 版本与您安装的 PyTorch 版本兼容。代码会自动检测并使用可用的 CUDA 设备。
 
-## ⚙️ 配置 (`config.py`)
+##  配置 (`config.py`)
 
 `config.py` 文件是项目的核心配置文件。在运行任何实验之前，请仔细检查并根据您的需求进行调整：
 
@@ -120,7 +112,7 @@ pip install thop
 * **基线模型准备**: 脚本会首先识别并运行所有标记为 `is_fp32_baseline_generation: True` 的实验（或名称包含 "Baseline_FP32"）。如果对应的模型文件已存在，它会询问您是使用现有模型还是重新训练。训练好的基线模型状态会被缓存，供后续依赖它们的实验使用。
 * **压缩实验**: 对于其他实验，如果配置了 `load_fp32_baseline_from_experiment`，脚本会尝试加载相应的基线模型权重，然后按顺序执行配置的剪枝、微调和量化步骤。
 
-## 📊 输出与产物
+##  输出与产物
 
 * **控制台**:
     * 显示全局配置信息（设备、路径）。
@@ -136,7 +128,7 @@ pip install thop
     * 为每个实验生成一个JSON日志文件（例如, `Baseline_FP32_Serial_CIFAR10_results.json`），包含该实验的配置摘要和所有记录的性能指标。
     * 所有实验完成后，会生成一个 `_all_experiments_summary.json` 文件，汇总所有实验的结果日志，方便进行横向比较。
 
-## 🛠️ 代码模块概览
+##  代码模块概览
 
 * **`config.py`**: 实验的“大脑”，定义所有可调参数和实验流程。
 * **`dataset.py`**: `get_dataloaders` 函数负责加载和预处理数据集，支持CIFAR10/100，并可配置数据增强策略。
@@ -157,7 +149,7 @@ pip install thop
     * `run_experiment`: 执行单个实验流程的核心函数。
     * `main`: 主函数，负责管理基线模型的准备和所有实验的顺序执行。
 
-## 🔧 自定义与扩展
+##  自定义与扩展
 
 * **添加新数据集**: 修改 `dataset.py` 中的 `DATASET_REGISTRY` 字典，并可能需要为新数据集实现自定义的 `Dataset` 类（如果不是Torchvision原生支持的）。
 * **修改模型架构**:
@@ -166,14 +158,4 @@ pip install thop
 * **定义新实验**: 在 `config.py` 的 `EXPERIMENT_CONFIGS` 列表中添加新的字典条目，详细定义新实验的参数和依赖关系。例如，尝试不同的剪枝比例、新的压缩顺序（如先量化再剪枝）、知识蒸馏等。
 * **高级剪枝**: `utils.py` 中的 `apply_channel_pruning` 目前是将权重置零。要实现真正的FLOPs减少，您需要研究并实现能够修改网络结构（移除层/通道并调整后续层输入）的剪枝技术，或者使用支持此类操作的第三方库。
 
-## 💡 注意事项与故障排除
 
-* **CUDA内存不足**: 如果遇到 "CUDA out of memory" 错误，请首先尝试减小 `config.py` 中 `training_args` 的 `batch_size`。
-* **`thop` 库**: 如果未安装，FLOPs计算将被跳过。对于已量化的INT8模型，`thop` 计算的FLOPs是基于FP32的近似值，不完全代表INT8的实际计算量。
-* **剪枝函数**: 当前的剪枝是基于 `torch.nn.utils.prune.ln_structured(..., n=1, ...)` 实现的。确保您的PyTorch版本和环境正确支持此功能。如果遇到剪枝相关的 `AttributeError` 或参数错误，请仔细检查PyTorch版本和 `utils.py` 中该函数的调用。
-* **量化校准警告**: 如果在量化转换时看到 `must run observer before calling calculate_qparams` 警告，这通常意味着PTQ的校准阶段未能正确为所有模块收集统计数据，可能导致量化后模型性能差或崩溃。检查校准数据、`QuantStub`/`DeQuantStub`的放置以及模块融合是否正确。
-* **实验时长**: 完整的实验流程（特别是包含多个从头开始的FP32训练或长时间的QAT）可能非常耗时。建议从少量实验和较少训练轮数开始测试。
-* **结果分析**: 仔细检查 `results/` 目录下的JSON文件，它们是您分析不同策略效果的依据。
-
-祝您研究顺利！
-```
